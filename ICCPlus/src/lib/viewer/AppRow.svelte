@@ -132,7 +132,7 @@
     import AppObject from './AppObject.svelte';
     import Button, { Label } from '@smui/button';
     import DOMPurify from 'dompurify';
-    import { app, getStyling, checkRequirements, pointTypeMap, rowDesignMap, sanitizeArg, checkActivated, globalReqMap, replaceText, choiceMap, activatedMap, variableMap, hexToRgba, groupMap, snackbarVariables, selectUpdateScore, selectedOneMore, selectedOneLess, tmpActivatedMap, deselectObject, activateTempChoices, activateRowButtonRuntime, activateVariableRuntime, deactivateVariableRuntime } from '$lib/store/store.svelte';
+    import { app, getStyling, checkRequirements, pointTypeMap, rowDesignMap, sanitizeArg, checkActivated, globalReqMap, replaceText, choiceMap, activatedMap, variableMap, hexToRgba, groupMap, snackbarVariables, selectUpdateScore, selectedOneMore, selectedOneLess, tmpActivatedMap, deselectObject, activateTempChoices } from '$lib/store/store.svelte';
     import type { Choice, ChoiceOptions, Row } from '$lib/store/types';
     import { tooltip } from '$lib/custom/tooltip/store.svelte';
     import { SvelteMap } from 'svelte/reactivity';
@@ -430,7 +430,7 @@
                     }
                 });
                 
-                activateRowButtonRuntime(row, row.pointTypeRandom, pNum + rnd);
+                activatedMap.set(row.id, {multiple: 0, isRowButton: true, rndPoint: row.pointTypeRandom, pointNum: pNum + rnd});
                 tmpScores.set(point.id, rnd);
 
                 selectUpdateScore(null, tmpScores, 0, undefined, undefined, blankOptions);
@@ -518,10 +518,12 @@
             if (typeof variable !== 'undefined') {
                 if (activatedMap.has(variable.id)) {
                     if (row.buttonType) {
-                        deactivateVariableRuntime(variable);
+                        variable.isTrue = false;
+                        activatedMap.delete(variable.id);
                     }
                 } else {
-                    activateVariableRuntime(variable);
+                    variable.isTrue = true;
+                    activatedMap.set(variable.id, {multiple: 0, isVariable: true});
                 }
             }
         }

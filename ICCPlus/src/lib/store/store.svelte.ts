@@ -8,20 +8,6 @@ import { toBlob } from 'html-to-image';
 import type { SvelteVirtualizer } from '@tanstack/svelte-virtual';
 import { evaluate } from '@antv/expr';
 import { tick } from 'svelte';
-import {
-    checkActivated as checkRuntimeActivated,
-    checkRequirement as checkRuntimeRequirement,
-    checkRequirements as checkRuntimeRequirements,
-    activateRowButton,
-    activateVariable,
-    changeMultipleChoiceSelection,
-    deactivateVariable,
-    deselectChoice,
-    applyScoreDeselection,
-    applyScoreSelection,
-    selectChoice
-} from '$lib/runtime/choice-activation';
-import { createLoadedCyoaRuntime } from '$lib/runtime/loaded-cyoa-runtime';
 
 export const appVersion = '2.9.1';
 export const filterStyling = {
@@ -1971,21 +1957,14 @@ export function checkPointEnable(point: PointType) {
     }
     return true;
 }
-function createActivationRuntime(actMap: SvelteMap<string, ActivatedMap> = activatedMap) {
-    return createLoadedCyoaRuntime({
-        rows: rowMap,
-        choices: choiceMap,
-        groups: groupMap,
-        pointTypes: pointTypeMap,
-        variables: variableMap,
-        words: wordMap,
-        globalRequirements: globalReqMap,
-        activations: actMap
-    });
-}
-
 export function checkActivated(str: string, actMap: SvelteMap<string, ActivatedMap> = activatedMap) {
-    return checkRuntimeActivated(createActivationRuntime(actMap), str);
+    const [key, val = '0'] = str.split('/ON#');
+    const num = parseInt(val);
+    if (num > 0) {
+        const actNum = actMap.get(key)?.multiple || 0;
+        return actNum >= num;
+    }
+    return actMap.has(key);
 }
 function getPriority(operator: string, priority: number = 1) {
     switch (operator) {
@@ -2016,19 +1995,213 @@ function evaluateNode(node: number | string | ExprNode): number {
     }
 }
 export function checkReq(req: Requireds, aMap: SvelteMap<string, ActivatedMap> = activatedMap) {
-    return checkRuntimeRequirement(createActivationRuntime(aMap), req);
+    if (req.required) {
+        switch (req.type) {
+            case 'id':
+                return checkActivated(req.reqId, aMap);
+            case 'points':
+                const pointData = pointTypeMap.get(req.reqId);
+                if (typeof pointData !== 'undefined') {
+                    if (typeof req.operator === 'undefined') {
+                        return pointData.startingSum > req.reqPoints;
+                    } else {
+                        switch (req.operator) {
+                            case '1':
+                                return pointData.startingSum > req.reqPoints;
+                            case '2':
+                                return pointData.startingSum >= req.reqPoints;
+                            case '3':
+                                return pointData.startingSum == req.reqPoints;
+                            case '4':
+                                return pointData.startingSum <= req.reqPoints;
+                            case '5':
+                                return pointData.startingSum < req.reqPoints;
+                        }
+                    }
+                }
+                return false;
+            case 'or':
+                let orNum = typeof req.orNum === 'undefined' ? 1 : req.orNum;
+                let orCount = 0;
+                if (req.orRequireds) {
+                    for (let i = 0; i < req.orRequireds.length; i++) {
+                        const orReq = req.orRequireds[i];
+                        if (checkReq(orReq, aMap)) orCount++;
+                    }
+                }
+                return orCount >= orNum;
+            case 'pointCompare':
+                const point1 = pointTypeMap.get(req.reqId);
+                const point2 = pointTypeMap.get(req.reqId1);
+                if (typeof point1 !== 'undefined' && typeof point2 !== 'undefined') {
+                    let current: number | ExprNode = point2.startingSum;
+
+                    if (req.more) {
+                        for (let i = 0; i < req.more.length; i++) {
+                            let temp = 0;
+                            const item = req.more[i];
+                            const operator = item.operator || '1';
+                            const priority = getPriority(operator, item.priority);
+                            if (item.id) {
+                                const moreData = pointTypeMap.get(item.id);
+                                if (typeof moreData !== 'undefined') {
+                                    temp = moreData.startingSum;
+                                }
+                            } else if (typeof item.points !== 'undefined') {
+                                temp = item.points;
+                            }
+
+                            const node: ExprNode = { left: current, operator, right: temp, priority };
+
+                            if (typeof current !== 'number' && priority < current.priority) {
+                                current = { left: current.left, operator: current.operator, right: { left: current.right, operator, right: temp, priority }, priority: current.priority };
+                            } else {
+                                current = node;
+                            }
+                        }
+                    }
+
+                    const result = evaluateNode(current);
+
+                    switch (req.operator) {
+                        case '1':
+                            return point1.startingSum > result;
+                        case '2':
+                            return point1.startingSum >= result;
+                        case '3':
+                            return point1.startingSum == result;
+                        case '4':
+                            return point1.startingSum <= result;
+                        case '5':
+                            return point1.startingSum < result;
+                        default:
+                            return false;
+                    }
+                }
+                return false;
+            case 'selFromGroups':
+                if (req.selGroups) {
+                    let count = 0;
+                    let selFromOperators = typeof req.selFromOperators === 'undefined' ? '1' : req.selFromOperators;
+                    let selNum = typeof req.selNum === 'undefined' ? 1 : req.selNum;
+                    for (let i = 0; i < req.selGroups.length; i++) {
+                        const data = groupMap.get(req.selGroups[i]);
+                        if (typeof data !== 'undefined') {
+                            const groupElements = data.elements;
+                            for (let j = 0; j < groupElements.length; j++) {
+                                if (activatedMap.has(groupElements[j])) count++;
+                            }
+                        }
+                    }
+                    switch (selFromOperators) {
+                        case '1':
+                            return !(selNum > count || (selNum === 0 && count > 0));
+                        case '2':
+                            return selNum === count;
+                        case '3':
+                            return !(selNum < count || (selNum === 0 && count > 0));
+                        default:
+                            return false;
+                    }
+                }
+            case 'selFromRows':
+                if (req.selRows) {
+                    let count = 0;
+                    let selFromOperators = typeof req.selFromOperators === 'undefined' ? '1' : req.selFromOperators;
+                    let selNum = typeof req.selNum === 'undefined' ? 1 : req.selNum;
+                    for (let i = 0; i < req.selRows.length; i++) {
+                        const data = rowMap.get(req.selRows[i]);
+                        if (typeof data !== 'undefined') {
+                            count += data.currentChoices;
+                        }
+                    }
+                    switch (selFromOperators) {
+                        case '1':
+                            return !(selNum > count || (selNum === 0 && count > 0));
+                        case '2':
+                            return selNum === count;
+                        case '3':
+                            return !(selNum < count || (selNum === 0 && count > 0));
+                        default:
+                            return false;
+                    }
+                }
+            case 'selFromWhole':
+                let count = 0;
+                let selFromOperators = typeof req.selFromOperators === 'undefined' ? '1' : req.selFromOperators;
+                let selNum = typeof req.selNum === 'undefined' ? 1 : req.selNum;
+                for (let i = 0; i < app.rows.length; i++) {
+                    count += app.rows[i].currentChoices;
+                }
+                switch (selFromOperators) {
+                    case '1':
+                        return !(selNum > count || (selNum === 0 && count > 0));
+                    case '2':
+                        return selNum === count;
+                    case '3':
+                        return !(selNum < count || (selNum === 0 && count > 0));
+                    default:
+                        return false;
+                }
+            case 'gid':
+                const globalReq = globalReqMap.get(req.reqId);
+                if (typeof globalReq !== 'undefined' && typeof app.globalRequirements !== 'undefined') {
+                    return checkRequirements(globalReq.requireds, aMap);
+                }
+                return false;
+            case 'word':
+                const word = wordMap.get(req.reqId);
+                if (typeof word !== 'undefined') {
+                    let orCount = 0;
+                    for (let i = 0; i < req.orRequired.length; i++) {
+                        let orReq = req.orRequired[i].req;
+                        if (typeof orReq !== 'undefined' && word.replaceText === orReq) orCount++;
+                    }
+                    return orCount >= 1;
+                }
+                return false;
+        }
+    } else {
+        switch (req.type) {
+            case 'id':
+                return !checkActivated(req.reqId, aMap);
+            case 'or':
+                let orNum = typeof req.orNum === 'undefined' ? 1 : req.orNum;
+                let orCount = 0;
+                if (req.orRequireds) {
+                    for (let i = 0; i < req.orRequireds.length; i++) {
+                        let orReq = req.orRequireds[i];
+                        if (checkReq(orReq, aMap)) orCount++;
+                    }
+                    return orCount < req.orRequireds.length - orNum + 1;
+                }
+            case 'gid':
+                const globalReq = globalReqMap.get(req.reqId);
+                if (typeof globalReq !== 'undefined' && typeof app.globalRequirements !== 'undefined') {
+                    return !checkRequirements(globalReq.requireds, aMap);
+                }
+                return false;
+        }
+    }
+    return false;
 }
 export function checkRequirements(requireds: Requireds[], actMap: SvelteMap<string, ActivatedMap> = activatedMap): boolean {
-    return checkRuntimeRequirements(createActivationRuntime(actMap), requireds);
-}
-export function activateVariableRuntime(variable: Variable) {
-    activateVariable(createActivationRuntime(), variable);
-}
-export function deactivateVariableRuntime(variable: Variable) {
-    deactivateVariable(createActivationRuntime(), variable);
-}
-export function activateRowButtonRuntime(row: Row, randomPointTypeId?: string, pointNum?: number) {
-    activateRowButton(createActivationRuntime(), row, { randomPointTypeId, pointNum });
+    let result = true;
+
+    if (typeof requireds !== 'undefined') {        
+        for (let i = 0; i < requireds.length; i++) {
+            const req = requireds[i];
+            let subResult = true;
+
+            if (typeof req.requireds !== 'undefined') {
+                for (let j = 0; j < req.requireds.length; j++) {
+                    subResult = subResult && checkReq(req.requireds[j], actMap);
+                }
+            }
+            if (subResult) result = result && checkReq(requireds[i], actMap);
+        }
+    }
+    return result;
 }
 export function wrapYoutubePlayer(player: YT.Player): MusicPlayer {
     return {
@@ -5263,13 +5436,15 @@ export function deselectObject(localChoice: Choice | SelectableAddon, localRow: 
                             }
                             val = score.discountScore;
                         }
-                        val = applyScoreDeselection(createActivationRuntime(), score, val);
+                        val = point.allowFloat ? val : Math.floor(val);
+                        point.startingSum += val;
                         let tmpScore = tmpScores.get(score.id);
                         if (typeof tmpScore !== 'undefined') {
                             tmpScores.set(score.id, -val + tmpScore);
                         } else {
                             tmpScores.set(score.id, -val);
                         }
+                        delete score.isActive;
                         delete score.setValue;
                         delete score.appliedDiscount
                     }
@@ -5373,7 +5548,9 @@ export function deselectObject(localChoice: Choice | SelectableAddon, localRow: 
                 }
             }
             
-            deselectChoice(createActivationRuntime(), localChoice, localRow, { countAsRowChoice: countCheck });
+            localChoice.isActive = false;
+            if (countCheck) localRow.currentChoices -= 1;
+            activatedMap.delete(localChoice.id);
 
             Array.from(activatedMap.entries()).forEach(([id, val]) => {
                 const cMap = choiceMap.get(id);
@@ -6113,7 +6290,9 @@ export function selectObject(localChoice: Choice | SelectableAddon, localRow: Ro
                 playSfxOnSelect(localChoice);
                 const tmpScores = new SvelteMap<string, number>();
 
-                selectChoice(createActivationRuntime(), localChoice, localRow, { countAsRowChoice: countCheck });
+                localChoice.isActive = true;
+                activatedMap.set(localChoice.id, {multiple: 0});
+                if (countCheck) localRow.currentChoices += 1;
 
                 if (localChoice.discountOther) {
                     if (typeof localChoice.discountOperator !== 'undefined' && typeof localChoice.discountValue !== 'undefined') {
@@ -6203,7 +6382,9 @@ export function selectObject(localChoice: Choice | SelectableAddon, localRow: Ro
                                     }
                                 }
                             }
-                            val = applyScoreSelection(createActivationRuntime(), score, val);
+                            val = point.allowFloat ? val : Math.floor(val);
+                            point.startingSum -= val;
+                            score.isActive = true;
                             let tmpScore = tmpScores.get(score.id);
                             if (typeof tmpScore !== 'undefined') {
                                 tmpScores.set(score.id, val + tmpScore);
@@ -6999,9 +7180,19 @@ export function selectedOneMore(localChoice: Choice | SelectableAddon, localRow:
                 const isPos = localChoice.multipleUseVariable >= 0;
                 const selNum = Math.abs(localChoice.multipleUseVariable);
 
-                changeMultipleChoiceSelection(createActivationRuntime(), localChoice, origRow, 1, {
-                    countAsRowChoice: countCheck
-                });
+                localChoice.multipleUseVariable += 1;
+
+                if (localChoice.multipleUseVariable === 0) {
+                    activatedMap.delete(localChoice.id);
+                    localChoice.isActive = false;
+                    if (countCheck) origRow.currentChoices -= 1;
+                } else {
+                    if (localChoice.multipleUseVariable === 1) {
+                        localChoice.isActive = true;
+                        if (countCheck) origRow.currentChoices += 1;
+                    }
+                    activatedMap.set(localChoice.id, {multiple: localChoice.multipleUseVariable});
+                }
 
                 if (isPos) {
                     if (localChoice.discountOther) {
@@ -7921,9 +8112,19 @@ export function selectedOneLess(localChoice: Choice | SelectableAddon, localRow:
                 }
             }
 
-            changeMultipleChoiceSelection(createActivationRuntime(), localChoice, origRow, -1, {
-                countAsRowChoice: countCheck
-            });
+            localChoice.multipleUseVariable -= 1;
+
+            if (localChoice.multipleUseVariable === 0) {
+                localChoice.isActive = false;
+                if (countCheck) origRow.currentChoices -= 1;
+                activatedMap.delete(localChoice.id);
+            } else {
+                if (localChoice.multipleUseVariable === -1) {
+                    localChoice.isActive = true;
+                    if (countCheck) origRow.currentChoices += 1;
+                }
+                activatedMap.set(localChoice.id, {multiple: localChoice.multipleUseVariable});
+            }
 
             Array.from(activatedMap.entries()).forEach(([id, val]) => {
                 const cMap = choiceMap.get(id);
