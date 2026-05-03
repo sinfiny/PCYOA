@@ -12,6 +12,22 @@ _Avoid_: Project, save data
 A normalized internal CYOA representation that is ready for Creator and Viewer behavior.
 _Avoid_: Project, Runtime Project, Hydrated Project, CYOA State
 
+**CYOA Outline**:
+A clean, non-interactive page structure derived from a Loaded CYOA that describes sections, items, media, placement, and stable targets for Viewer behavior.
+_Avoid_: Raw rows, template fields, layout state, view model
+
+**CYOA Target**:
+A stable address inside a CYOA Outline for a meaningful place that Viewer behavior may style, reveal, hide, scroll to, activate, replace, or otherwise affect.
+_Avoid_: DOM selector, CSS class, element id, raw object id
+
+**Presentation Style Map**:
+A Viewer-owned mapping from CYOA Targets to concrete presentation decisions such as CSS classes, inline style strings, resolved colors, spacing, typography, filters, and media sizing.
+_Avoid_: CYOA Outline styling, source styling, Presentation Hint
+
+**Game Mode Effect**:
+A target-keyed behavioral outcome produced by a Game Mode Interpretation, such as selected, disabled, hidden, score changed, scroll requested, media replaced, or dialog requested.
+_Avoid_: Direct mutation, DOM event, store side effect
+
 **Project File Hydration**:
 The transformation from a parsed Project File into a Loaded CYOA.
 _Avoid_: Import, load project, initialize app
@@ -101,6 +117,10 @@ _Avoid_: Folder magic, viewer flag, hidden state
 - A **Project File** is transformed into an internal normalized runtime model before Creator or Viewer behavior uses it.
 - A **Project File** is hydrated into exactly one **Loaded CYOA**.
 - **Project File Hydration** transforms one **Project File** into one **Loaded CYOA**.
+- A **Loaded CYOA** can provide a **CYOA Outline** so Viewer layout work does not depend directly on legacy row and template fields.
+- A **CYOA Outline** contains **CYOA Targets** for rows, choices, addons, point bars, result rows, and media slots that Viewer behavior may affect.
+- A **Presentation Style Map** is separate from the **CYOA Outline** and applies concrete styling by **CYOA Target**.
+- A **Game Mode Interpretation** expresses behavior as **Game Mode Effects** keyed by **CYOA Target**; legacy mutation may remain behind the first Adapter.
 - A **Project File** can be decomposed into one **Source Project Package** for human editing.
 - A **Source Project Package** is compiled into a legacy-compatible **Project File** before existing Viewer behavior uses it.
 - Multiple **Viewer Implementations** can present the same **Loaded CYOA**.
@@ -135,6 +155,18 @@ _Avoid_: Folder magic, viewer flag, hidden state
 
 > **Dev:** "Does **Project File Hydration** start autosave and load audio?"
 > **Domain expert:** "No — it only produces the **Loaded CYOA**; runtime setup happens after hydration."
+
+> **Dev:** "Should a layout-focused Viewer module read raw row templates from the **Loaded CYOA**?"
+> **Domain expert:** "No — it should receive a **CYOA Outline** with clean sections, items, media, placement, and stable targets."
+
+> **Dev:** "Should the **Game Mode Interpretation** point directly at DOM elements?"
+> **Domain expert:** "No — it should point at **CYOA Targets** in the **CYOA Outline**."
+
+> **Dev:** "Should concrete styling live directly on **CYOA Outline** nodes?"
+> **Domain expert:** "No — the **Presentation Style Map** applies styling by **CYOA Target** so structure and presentation can change independently."
+
+> **Dev:** "Does the first **Game Mode Interpretation** have to stop mutating legacy state internally?"
+> **Domain expert:** "No — it should expose **Game Mode Effects** at the seam, while the first Adapter may still delegate to legacy mutation inside."
 
 > **Dev:** "Are we replacing **Project Files** with the new editable ZIP?"
 > **Domain expert:** "No — the editable ZIP is a **Source Project Package** that can be created from a **Project File** and then worked on outside the Creator."
@@ -198,6 +230,8 @@ _Avoid_: Folder magic, viewer flag, hidden state
 - "project" is too broad: it has been used for both the external **Project File** and the internal normalized runtime model.
 - "project" used for the internal normalized runtime model is resolved as **Loaded CYOA**.
 - "import", "load project", and "initialize app" are too broad for the pure transformation step; use **Project File Hydration** for that step.
+- "layout" is too broad when discussing Viewer structure; use **CYOA Outline** for the non-interactive page structure derived from a **Loaded CYOA**.
+- "target" is too broad when discussing Viewer behavior; use **CYOA Target** for stable addresses inside a **CYOA Outline**.
 - "JSON extract" is resolved as **Project File** when discussing the current `.json` or `project.json` export, and **Source Project Package** when discussing the proposed human-editable ZIP.
 - "export" is too broad for generating runtime-compatible data from the editable ZIP; use **Source Project Compilation** for that step.
 - "player-controlled styling" does not mean arbitrary styling controls; it is resolved as **Player Presentation Choice** between **Viewer Implementations**.
