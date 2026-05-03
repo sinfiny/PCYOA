@@ -64,6 +64,34 @@ _Avoid_: Lore companion, one-file-per-point
 A Viewer Implementation's opinionated handling of declarative rules to create a play experience.
 _Avoid_: Rule source, source mechanics
 
+**Availability State Machine**:
+A pure rules module that accepts a Loaded CYOA, a Player Action, and a Play State, then returns the next Play State and Play Snapshot.
+_Avoid_: Svelte store, UI state, click handler
+
+**Player Action**:
+An intentional player event such as selecting a choice, deselecting a choice, setting a choice count, changing a variable, or resetting play.
+_Avoid_: UI event, click event, mutation
+
+**Play State**:
+The minimal persisted runtime facts needed to replay the player's path through a Loaded CYOA.
+_Avoid_: App state, activated map, viewer state
+
+**Play Snapshot**:
+A derived, non-persisted view of current points, row availability, choice availability, and Game Mode Interpretation output.
+_Avoid_: Store cache, reactive state
+
+**Choice Availability**:
+The derived selectable state of a choice for the current Play State, including reasons when unavailable.
+_Avoid_: disabled styling, hidden card state
+
+**Balancing Algorithm**:
+A pure algorithm used by a Game Mode Interpretation to evaluate or steer a Play State.
+_Avoid_: point system, selection logic
+
+**Weighted Matrix**:
+A Balancing Algorithm that scores possible results from accumulated choice signals and result weights.
+_Avoid_: hardcoded ending logic, random weighting
+
 **Legacy Compilation Manifest**:
 A TypeScript file that guides Source Project Compilation into the legacy Project File shape.
 _Avoid_: Source spine, viewer contract, project config
@@ -112,6 +140,11 @@ _Avoid_: Folder magic, viewer flag, hidden state
 - **Rule Modules** define source mechanics as typed declarative data, not executable gameplay scripts.
 - **Infrastructure Rule Modules** may group rules-only source objects when one file per object would add clutter.
 - A **Viewer Implementation** may apply its own **Game Mode Interpretation** to the same declarative rules.
+- An **Availability State Machine** interprets **Player Actions** against a **Loaded CYOA** and produces **Play Snapshots**.
+- A **Play State** is persisted or shared; a **Play Snapshot** is derived and can be rebuilt.
+- **Choice Availability** belongs to the **Play Snapshot**, not to styling or layout.
+- A **Game Mode Interpretation** may use a **Balancing Algorithm** without changing the authored **Rule Modules**.
+- A **Weighted Matrix** is one possible **Balancing Algorithm** for steering or ranking results.
 - **Rule Modules** and **Lore Files** use mirrored paths and matching **Source IDs** when they describe the same CYOA object.
 - A **Source Index** defines the future-facing structure of a **Source Project Package**.
 - A **Legacy Compilation Manifest** exists only for compatibility with the legacy **Project File** shape.

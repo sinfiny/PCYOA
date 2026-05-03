@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build && vite build --config vite.config.desktop.ts",
     "preview": "vite build && vite preview",
+    "test:core": "tsx tools/core/__tests__/availability.test.ts",
     "prepare": "npm run smui-theme-light && npm run smui-theme-dark",
     "smui-theme-light": "smui-theme compile public/css/smui.css -i src/theme",
     "smui-theme-dark": "smui-theme compile public/css/smui-dark.css -i src/theme/dark",
@@ -25,6 +26,7 @@
     "smui-theme": "^8.0.3",
     "svelte-check": "^4.3.1",
     "terser": "^5.43.1",
+    "tsx": "^4.20.6",
     "typescript": "~5.8.3",
     "vite": "^7.1.5"
   },
