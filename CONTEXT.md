@@ -56,6 +56,10 @@ _Avoid_: Per-file legacy metadata, inline migration metadata
 A TypeScript file in a Source Project Package that exports typed declarative rule data.
 _Avoid_: Script, DSL, gameplay code
 
+**Infrastructure Rule Module**:
+A shared Rule Module for rules-only source objects such as points, variables, groups, or global requirements.
+_Avoid_: Lore companion, one-file-per-point
+
 **Game Mode Interpretation**:
 A Viewer Implementation's opinionated handling of declarative rules to create a play experience.
 _Avoid_: Rule source, source mechanics
@@ -71,6 +75,10 @@ _Avoid_: Legacy manifest, legacy id map, Project File compatibility config
 **Source Object Kind**:
 An explicit classification in the Source Index that says whether a source object has lore, rules, or both.
 _Avoid_: Missing companion file, inferred file pair
+
+**Source Object Type**:
+An explicit domain role in the Source Index, such as choice, row, point, variable, group, ending, or world note.
+_Avoid_: File kind, storage shape
 
 **Content Media**:
 Canonical media that carries CYOA meaning, such as portraits, illustrations, maps, icons, or audio.
@@ -102,17 +110,20 @@ _Avoid_: Folder magic, viewer flag, hidden state
 - A **Lore File** is identified by a **Source ID**, not by a legacy Project File ID.
 - A **Legacy ID Map** preserves compatibility with legacy **Project File** IDs without adding migration metadata to **Lore Files**.
 - **Rule Modules** define source mechanics as typed declarative data, not executable gameplay scripts.
+- **Infrastructure Rule Modules** may group rules-only source objects when one file per object would add clutter.
 - A **Viewer Implementation** may apply its own **Game Mode Interpretation** to the same declarative rules.
 - **Rule Modules** and **Lore Files** use mirrored paths and matching **Source IDs** when they describe the same CYOA object.
 - A **Source Index** defines the future-facing structure of a **Source Project Package**.
 - A **Legacy Compilation Manifest** exists only for compatibility with the legacy **Project File** shape.
-- **Content Media** lives in an `assets/` tree and is referenced semantically from **Lore Files** or the **Package Manifest**.
+- **Content Media** lives in an `assets/` tree and is referenced semantically from **Lore Files** or the **Source Index**.
 - **Legacy Quarantine** may preserve legacy styling, styling images, or low-value decomposed lore without making them canonical source.
 - **Legacy Quarantine** material may remain visible in legacy-compatible Viewer output while being excluded from authoring-agent context.
 - An **Authored Replacement** can replace quarantined material without requiring the old material to be deleted immediately.
 - **Source Status** controls authoring-agent visibility and legacy compiler inclusion policy for **Source Project Package** material.
 - **Source Status** is declared in the **Source Index**, not inside **Lore Files** or **Rule Modules**.
 - **Source Object Kind** is declared in the **Source Index** so lore-only and rules-only objects are intentional.
+- **Source Object Type** describes domain role, while **Source Object Kind** describes expected source files.
+- The **Source Index** references global mechanics by Source ID; **Infrastructure Rule Modules** define those mechanics.
 
 ## Example dialogue
 
@@ -146,6 +157,12 @@ _Avoid_: Folder magic, viewer flag, hidden state
 > **Dev:** "Are rules arbitrary TypeScript or Lua scripts?"
 > **Domain expert:** "No — **Rule Modules** are TypeScript files that export typed declarative data. Different **Viewer Implementations** can interpret that data differently."
 
+> **Dev:** "Does every point type need its own rule file?"
+> **Domain expert:** "No — points, variables, groups, and global requirements can live in **Infrastructure Rule Modules**."
+
+> **Dev:** "Should point definitions live in the **Source Index**?"
+> **Domain expert:** "No — the **Source Index** can reference and order them, but **Infrastructure Rule Modules** define them."
+
 > **Dev:** "Should lore and rules live in the same file?"
 > **Domain expert:** "No — keep them separate but mirrored, such as `lore/choices/vampire-prince.md` and `rules/choices/vampire-prince.ts`."
 
@@ -172,6 +189,9 @@ _Avoid_: Folder magic, viewer flag, hidden state
 
 > **Dev:** "If a choice has lore but no rules, is the rules file missing?"
 > **Domain expert:** "Not if its **Source Object Kind** says it is lore-only."
+
+> **Dev:** "Is `choice` the same thing as `lore-and-rules`?"
+> **Domain expert:** "No — `choice` is a **Source Object Type**; `lore-and-rules` is a **Source Object Kind**."
 
 ## Flagged ambiguities
 
