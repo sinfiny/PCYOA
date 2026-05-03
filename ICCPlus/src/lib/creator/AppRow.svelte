@@ -458,7 +458,7 @@
 	import IconButton from '@smui/icon-button';
     import Textfield from '$lib/custom/textfield';
     import { Wrapper } from '$lib/custom/tooltip';
-    import { app, checkDupId, groupMap, getStyling, objectWidths, rowMap, checkRequirements, pointTypeMap, rowDesignMap, sanitizeArg, checkActivated, globalReqMap, replaceText, choiceMap, objectWidthToNum, generateId, activatedMap, dlgVariables, variableMap, getGroups, winWidth, getGroupLabel, hexToRgba, pasteObject, snackbarVariables, menuVariables, clearClipboard, removeAnchor, exportData, selectUpdateScore, selectedOneMore, selectedOneLess, tmpActivatedMap, deselectObject, activateTempChoices, imgDialog } from '$lib/store/store.svelte';
+    import { app, checkDupId, groupMap, getStyling, objectWidths, rowMap, checkRequirements, pointTypeMap, rowDesignMap, sanitizeArg, checkActivated, globalReqMap, replaceText, choiceMap, objectWidthToNum, generateId, activatedMap, dlgVariables, variableMap, getGroups, winWidth, getGroupLabel, hexToRgba, pasteObject, snackbarVariables, menuVariables, clearClipboard, removeAnchor, exportData, selectUpdateScore, selectedOneMore, selectedOneLess, tmpActivatedMap, deselectObject, activateTempChoices, imgDialog, activateRowButtonRuntime, activateVariableRuntime, deactivateVariableRuntime } from '$lib/store/store.svelte';
     import type { Choice, ChoiceOptions, Row } from '$lib/store/types';
     import { tooltip } from '$lib/custom/tooltip/store.svelte';
     import { tick } from 'svelte';
@@ -971,7 +971,7 @@
                     }
                 });
 
-                activatedMap.set(row.id, {multiple: 0, isRowButton: true, rndPoint: row.pointTypeRandom, pointNum: pNum + rnd});
+                activateRowButtonRuntime(row, row.pointTypeRandom, pNum + rnd);
                 tmpScores.set(point.id, rnd);
 
                 selectUpdateScore(null, tmpScores, 0, undefined, undefined, blankOptions);
@@ -1059,12 +1059,10 @@
             if (typeof variable !== 'undefined') {
                 if (activatedMap.has(variable.id)) {
                     if (row.buttonType) {
-                        variable.isTrue = false;
-                        activatedMap.delete(variable.id);
+                        deactivateVariableRuntime(variable);
                     }
                 } else {
-                    variable.isTrue = true;
-                    activatedMap.set(variable.id, {multiple: 0, isVariable: true});
+                    activateVariableRuntime(variable);
                 }
             }
         }

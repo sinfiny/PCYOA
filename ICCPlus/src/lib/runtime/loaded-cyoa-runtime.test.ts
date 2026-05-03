@@ -1,28 +1,32 @@
 import { describe, expect, it } from 'vitest';
-import type {
-    ActivatedMap,
-    Choice,
-    ChoiceMap,
-    GlobalRequirement,
-    Group,
-    PointType,
-    Row,
-    Variable
-} from '$lib/store/types';
-import { createLoadedCyoaRuntime } from './loaded-cyoa-runtime';
+import {
+    createInMemoryLoadedCyoaRuntime,
+    makeActivation,
+    makeChoice,
+    makeGlobalRequirement,
+    makeGroup,
+    makePointType,
+    makeRequired,
+    makeRow,
+    makeRuntimeChoice,
+    makeVariable
+} from './loaded-cyoa-runtime-fixtures';
 
 describe('Loaded CYOA runtime state', () => {
     it('reads activation-facing CYOA data through a narrow seam', () => {
         const row = makeRow('row-a');
         const choice = makeChoice('choice-a');
-        const choiceEntry: ChoiceMap = { choice, row };
-        const group: Group = { id: 'group-a', name: 'Group A', elements: [choice.id], rowElements: [row.id] };
+        const choiceEntry = { choice, row };
+        const group = makeGroup('group-a', { name: 'Group A', elements: [choice.id], rowElements: [row.id] });
         const pointType = makePointType('points-a');
-        const variable: Variable = { id: 'variable-a', isTrue: false };
-        const globalRequirement: GlobalRequirement = { id: 'global-req-a', name: 'Global Requirement A', requireds: [] };
-        const activation: ActivatedMap = { multiple: 2 };
+        const variable = makeVariable('variable-a');
+        const globalRequirement = makeGlobalRequirement('global-req-a', {
+            name: 'Global Requirement A',
+            requireds: [makeRequired({ reqId: choice.id })]
+        });
+        const activation = makeActivation({ multiple: 2 });
 
-        const runtime = createLoadedCyoaRuntime({
+        const { runtime } = createInMemoryLoadedCyoaRuntime({
             rows: new Map([[row.id, row]]),
             choices: new Map([[choice.id, choiceEntry]]),
             groups: new Map([[group.id, group]]),
@@ -44,75 +48,33 @@ describe('Loaded CYOA runtime state', () => {
     });
 
     it('updates activation state through the seam', () => {
-        const activations = new Map<string, ActivatedMap>();
-        const runtime = createLoadedCyoaRuntime({
-            rows: new Map(),
-            choices: new Map(),
-            groups: new Map(),
-            pointTypes: new Map(),
-            variables: new Map(),
-            globalRequirements: new Map(),
-            activations
-        });
+        const { runtime, state } = createInMemoryLoadedCyoaRuntime();
 
-        runtime.setActivation('choice-a', { multiple: 1 });
+        runtime.setActivation('choice-a', makeActivation());
 
         expect(runtime.isActivated('choice-a')).toBe(true);
-        expect(activations.get('choice-a')).toEqual({ multiple: 1 });
+        expect(state.activations.get('choice-a')).toEqual({ multiple: 1 });
 
         runtime.deleteActivation('choice-a');
 
         expect(runtime.isActivated('choice-a')).toBe(false);
-        expect(activations.has('choice-a')).toBe(false);
+        expect(state.activations.has('choice-a')).toBe(false);
+    });
+
+    it('provides a pure fixture harness for activation behavior tests', () => {
+        const { runtime, state } = makeRuntimeChoice({
+            row: makeRow('row-a', { allowedChoices: 1 }),
+            choice: makeChoice('choice-a', {
+                groups: ['group-a'],
+                requireds: [makeRequired({ reqId: 'choice-b' })]
+            })
+        });
+
+        runtime.setActivation('choice-a', makeActivation({ multiple: 3 }));
+
+        expect(runtime.getChoice('choice-a')?.choice.requireds[0].reqId).toBe('choice-b');
+        expect(runtime.getChoice('choice-a')?.row.allowedChoices).toBe(1);
+        expect(runtime.getActivation('choice-a')).toEqual({ multiple: 3 });
+        expect(state.activations.size).toBe(1);
     });
 });
-
-function makeRow(id: string): Row {
-    return {
-        id,
-        index: 0,
-        title: 'Row',
-        titleText: '',
-        objectWidth: '',
-        image: '',
-        template: 1,
-        defaultAspectWidth: 1,
-        defaultAspectHeight: 1,
-        allowedChoices: 0,
-        currentChoices: 0,
-        requireds: [],
-        objects: []
-    };
-}
-
-function makeChoice(id: string): Choice {
-    return {
-        id,
-        index: 0,
-        title: 'Choice',
-        text: '',
-        debugTitle: '',
-        image: '',
-        template: 1,
-        objectWidth: '',
-        isActive: false,
-        multipleUseVariable: 0,
-        selectedThisManyTimesProp: 0,
-        requireds: [],
-        addons: [],
-        scores: [],
-        groups: []
-    };
-}
-
-function makePointType(id: string): PointType {
-    return {
-        id,
-        name: 'Points',
-        startingSum: 0,
-        initValue: 0,
-        activatedId: '',
-        beforeText: '',
-        afterText: ''
-    };
-}

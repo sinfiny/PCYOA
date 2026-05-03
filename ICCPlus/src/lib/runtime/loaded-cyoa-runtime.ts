@@ -4,6 +4,7 @@ import type {
     GlobalRequirement,
     Group,
     PointType,
+    Word,
     Row,
     Variable
 } from '$lib/store/types';
@@ -13,9 +14,10 @@ type RuntimeMap<T> = {
     has(id: string): boolean;
     set(id: string, value: T): unknown;
     delete(id: string): unknown;
+    values(): IterableIterator<T>;
 };
 
-type ReadonlyRuntimeMap<T> = Pick<RuntimeMap<T>, 'get' | 'has'>;
+type ReadonlyRuntimeMap<T> = Pick<RuntimeMap<T>, 'get' | 'has' | 'values'>;
 
 export type LoadedCyoaRuntimeState = {
     rows: ReadonlyRuntimeMap<Row>;
@@ -23,6 +25,7 @@ export type LoadedCyoaRuntimeState = {
     groups: ReadonlyRuntimeMap<Group>;
     pointTypes: ReadonlyRuntimeMap<PointType>;
     variables: ReadonlyRuntimeMap<Variable>;
+    words?: ReadonlyRuntimeMap<Word>;
     globalRequirements: ReadonlyRuntimeMap<GlobalRequirement>;
     activations: RuntimeMap<ActivatedMap>;
 };
@@ -33,11 +36,13 @@ export type LoadedCyoaRuntime = {
     getGroup(id: string): Group | undefined;
     getPointType(id: string): PointType | undefined;
     getVariable(id: string): Variable | undefined;
+    getWord(id: string): Word | undefined;
     getGlobalRequirement(id: string): GlobalRequirement | undefined;
     isActivated(id: string): boolean;
     getActivation(id: string): ActivatedMap | undefined;
     setActivation(id: string, value: ActivatedMap): void;
     deleteActivation(id: string): void;
+    getRows(): Iterable<Row>;
 };
 
 export function createLoadedCyoaRuntime(state: LoadedCyoaRuntimeState): LoadedCyoaRuntime {
@@ -47,6 +52,7 @@ export function createLoadedCyoaRuntime(state: LoadedCyoaRuntimeState): LoadedCy
         getGroup: (id) => state.groups.get(id),
         getPointType: (id) => state.pointTypes.get(id),
         getVariable: (id) => state.variables.get(id),
+        getWord: (id) => state.words?.get(id),
         getGlobalRequirement: (id) => state.globalRequirements.get(id),
         isActivated: (id) => state.activations.has(id),
         getActivation: (id) => state.activations.get(id),
@@ -55,6 +61,7 @@ export function createLoadedCyoaRuntime(state: LoadedCyoaRuntimeState): LoadedCy
         },
         deleteActivation: (id) => {
             state.activations.delete(id);
-        }
+        },
+        getRows: () => state.rows.values()
     };
 }

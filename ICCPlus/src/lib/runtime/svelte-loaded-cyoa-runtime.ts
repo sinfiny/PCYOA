@@ -5,7 +5,8 @@ import {
     groupMap,
     pointTypeMap,
     rowMap,
-    variableMap
+    variableMap,
+    wordMap
 } from '$lib/store/store.svelte';
 import { createLoadedCyoaRuntime } from './loaded-cyoa-runtime';
 
@@ -15,6 +16,7 @@ export const loadedCyoaRuntime = createLoadedCyoaRuntime({
     groups: groupMap,
     pointTypes: pointTypeMap,
     variables: variableMap,
+    words: wordMap,
     globalRequirements: globalReqMap,
     activations: activatedMap
 });
