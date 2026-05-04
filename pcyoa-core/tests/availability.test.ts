@@ -5,8 +5,8 @@ import {
     createWeightedMatrixGameMode,
     derivePlaySnapshot,
     evaluateWeightedMatrix
-} from '../../../src/lib/core/index';
-import type { LoadedCyoa, WeightedMatrix } from '../../../src/lib/core/index';
+} from '../src';
+import type { LoadedCyoa, WeightedMatrix } from '../src';
 
 const tinyCyoa: LoadedCyoa = {
     id: 'tiny',

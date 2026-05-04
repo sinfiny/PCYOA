@@ -1,0 +1,24 @@
+{
+  "name": "@pcyoa/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Headless TypeScript core for PCYOA availability, play state, and game mode interpretation.",
+  "exports": {
+    ".": "./src/index.ts",
+    "./core": "./src/core/index.ts",
+    "./source-package": "./src/source-package/index.ts"
+  },
+  "scripts": {
+    "check": "tsc -p tsconfig.json && tsc -p tsconfig.demo.json",
+    "demo": "vite --config demo/vite.config.ts --host 127.0.0.1",
+    "demo:build": "vite build --config demo/vite.config.ts",
+    "test": "npm run check && tsx tests/availability.test.ts && tsx tests/source-package-adapter.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.12",
+    "tsx": "^4.20.6",
+    "typescript": "~5.8.3",
+    "vite": "^8.0.10"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2023", "DOM"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "moduleDetection": "force",
+    "baseUrl": ".",
+    "paths": {
+      "$lib/*": ["src/lib/*"]
+    },
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": [
+    "src/lib/core/**/*.ts",
+    "tools/core/**/*.ts",
+    "tools/source-package/schema.ts"
+  ]
+}
