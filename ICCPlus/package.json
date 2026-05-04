@@ -9,6 +9,7 @@
     "preview": "vite build && vite preview",
     "check:core": "tsc -p tsconfig.core.json",
     "test:core": "npm run check:core && tsx tools/core/__tests__/availability.test.ts && tsx tools/core/__tests__/source-package-adapter.test.ts",
+    "test": "vitest run",
     "prepare": "npm run smui-theme-light && npm run smui-theme-dark",
     "smui-theme-light": "smui-theme compile public/css/smui.css -i src/theme",
     "smui-theme-dark": "smui-theme compile public/css/smui-dark.css -i src/theme/dark",
@@ -29,7 +30,8 @@
     "terser": "^5.43.1",
     "tsx": "^4.20.6",
     "typescript": "~5.8.3",
-    "vite": "^7.1.5"
+    "vite": "^7.1.5",
+    "vitest": "^4.1.5"
   },
   "dependencies": {
     "@antv/expr": "^1.0.2",
